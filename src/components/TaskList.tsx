@@ -46,6 +46,7 @@ const TaskList: React.FC<TaskListProps> = ({
             onPress={() => onTaskPress(task.id)}
             onLongPress={() => onTaskLongPress(task.id)}>
             <Text style={styles.taskContainer}>{task.text}</Text>
+            <Text style={styles.timestampContainer}>{task.formattedCreatedAt}</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
         </View>
@@ -70,6 +71,12 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: '600',
         color: 'gray',
+    },
+    timestampContainer: {
+      fontSize: 18,
+      fontWeight: '300',
+      color: 'gray',
+      alignSelf: "flex-end",
     },
     buttonContainer: {
         backgroundColor: 'gray',

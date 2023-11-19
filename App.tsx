@@ -4,7 +4,7 @@
  * @module App
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import RNFS from 'react-native-fs';
 import Task from './src/components/Task';
 import TaskList from './src/components/TaskList';
@@ -31,7 +31,7 @@ const App: React.FC = () => {
    * @function
    * @async
    */
-  const saveTasks = async () => {
+  const saveTasks = async (tasksToSave: Task[]) => {
     try{
       const permissionGranted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
@@ -47,7 +47,14 @@ const App: React.FC = () => {
         
       if (permissionGranted === PermissionsAndroid.RESULTS.GRANTED) {
         try {
-          await RNFS.writeFile('tasks.json', JSON.stringify(tasks), 'utf8');
+          const filePath = RNFS.DownloadDirectoryPath + '/tasks.json';
+
+          const directoryExists = await RNFS.exists(RNFS.DownloadDirectoryPath);
+          if (!directoryExists) {
+            await RNFS.mkdir(RNFS.DownloadDirectoryPath);
+          }
+          await RNFS.writeFile(filePath, JSON.stringify(tasksToSave), 'utf8');
+          
           ToastAndroid.show('Tasks saved successfully!', ToastAndroid.SHORT);
         } catch (error) {
           console.log('Error saving tasks:', error);
@@ -60,11 +67,6 @@ const App: React.FC = () => {
         console.log('Error permission:', error);
       }
 
-    // try {
-    //   await RNFS.writeFile('tasks.json', JSON.stringify(tasks), 'utf8');
-    // } catch (error) {
-    //   console.error('Error saving tasks:', error);
-    // }
   };
 
     /**
@@ -86,10 +88,11 @@ const App: React.FC = () => {
       );
 
       if (permissionGranted === PermissionsAndroid.RESULTS.GRANTED) {
+        const filePath = RNFS.DownloadDirectoryPath + '/tasks.json';
         try {
-          const fileExists = await RNFS.exists('tasks.json');
+          const fileExists = await RNFS.exists(filePath);
           if (fileExists) {
-            const fileContent = await RNFS.readFile('tasks.json', 'utf8');
+            const fileContent = await RNFS.readFile(filePath, 'utf8');
             setTasks(JSON.parse(fileContent));
           }
           
@@ -106,17 +109,6 @@ const App: React.FC = () => {
       console.log('Error permission:', error);
 
     }
-
-    // try {
-    //   const fileExists = await RNFS.exists('tasks.json');
-    //   if (fileExists) {
-    //     const fileContent = await RNFS.readFile('tasks.json', 'utf8');
-    //     setTasks(JSON.parse(fileContent));
-    //   }
-      
-    // } catch (error) {
-    //   console.error('Error loading tasks:', error);
-    // }
   };
 
     /**
@@ -129,16 +121,27 @@ const App: React.FC = () => {
     }
 
     const newTask: Task = {
-      id: tasks.length + 1,
+      id: Date.now(), 
       text: inputText,
       createdAt: Date.now(),
       completed: false,
+      formattedCreatedAt: new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'numeric',
+        year: '2-digit',
+      }) +
+      ' ' +
+      new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
     };
 
     setTasks([...tasks, newTask]);
     setInputText('');
 
-    saveTasks();
+    saveTasks([...tasks, newTask]);
     setIsIncompleteCollapsed(false)
 
   };
@@ -149,12 +152,14 @@ const App: React.FC = () => {
    * @param {number} taskId - The ID of the task to toggle.
    */
   const toggleTaskCompletion = (taskId: number) => {
-    const updatedTasks = tasks.map(task =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    );
-
-    setTasks(updatedTasks);
-    saveTasks();
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      );
+      console.log("updatedTasks", updatedTasks);
+      saveTasks(updatedTasks); // Save the updated tasks
+      return updatedTasks;
+    });
     setIsCompletedCollapsed(false)
     setIsIncompleteCollapsed(false)
   };
@@ -178,7 +183,7 @@ const App: React.FC = () => {
           onPress: () => {
             const updatedTasks = tasks.filter(task => task.id !== taskId);
             setTasks(updatedTasks);
-            saveTasks();
+            saveTasks(updatedTasks);
           },
         },
       ],
@@ -188,7 +193,7 @@ const App: React.FC = () => {
 
   return (
     <>
-    <View style={styles.rootContainer1}>
+    <ScrollView style={styles.rootContainer1}>
 
       <TaskList
         tasks={tasks.filter(task => !task.completed)}
@@ -207,7 +212,7 @@ const App: React.FC = () => {
         isCollapsed={isCompletedCollapsed}
         toggleCollapse={() => setIsCompletedCollapsed(!isCompletedCollapsed)}
       />
-    </View>
+    </ScrollView>
 
     <View style={styles.rootContainer2}>
       <TextInput
@@ -238,12 +243,10 @@ const styles = StyleSheet.create({
   rootContainer1: {
     paddingHorizontal: 16,
     marginVertical: 10,
-    flex: 4,
   },
   rootContainer2: {
     paddingHorizontal: 16,
     marginVertical: 10,
-    flex: 1,
     justifyContent: 'center'
   },
   textContainer: {

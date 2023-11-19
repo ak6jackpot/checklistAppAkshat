@@ -13,6 +13,7 @@ interface Task {
     text: string;
     createdAt: number;
     completed: boolean;
+    formattedCreatedAt?: string;
   }
   
   export default Task;

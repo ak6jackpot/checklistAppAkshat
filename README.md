@@ -1,3 +1,2 @@
 This is a single screen app in which components are being renedered conditionally. Therefore majority of the code I decided to write in App.tsx itself. Although generally only the navigatior/sheet provider is called in the App.tsx file, in our case since there is no requirement of navigation, this practice works efficiently.
-Prettier is being used for formatting here as eslint threw some overwrite errors on my system. Using Prettier library the formatting task is accomplished to similar extent as eslint.
 Currently the app will only run on android 10 or below, because from android 11 onwards Google has removed the concept of storage permissions as they have migrated Android to scoped storage.
